@@ -1,6 +1,7 @@
 // ignore_for_file: unused_local_variable
 
 import 'package:philiprehberger_secure_store/secure_store.dart';
+import 'package:philiprehberger_secure_store/file_backend.dart';
 
 Future<void> main() async {
   // Create a secure store with an encryption key
