@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_secure_store: ^0.1.0
+  philiprehberger_secure_store: ^0.2.0
 ```
 
 Then run:
