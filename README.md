@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_secure_store: ^0.2.0
+  philiprehberger_secure_store: ^0.3.0
 ```
 
 Then run:
@@ -116,6 +116,32 @@ await store.clear(); // remove everything
 
 // Strict access — throws if key missing
 final value = await store.readOrThrow('token');
+
+// Quick key count
+final count = await store.keyCount;
+```
+
+### Key Rotation
+
+Re-encrypt all stored values under a new encryption key:
+
+```dart
+await store.rotateKey('new-secret-key');
+// All existing values are now encrypted with the new key
+```
+
+### Backup & Restore
+
+```dart
+// Export raw encrypted data
+final data = await store.backup();
+
+// Restore from backup (clears store first)
+await store.restore(data);
+
+// JSON-based export/import
+final jsonStr = await store.export();
+await store.import(jsonStr);
 ```
 
 ## API
@@ -143,6 +169,12 @@ final value = await store.readOrThrow('token');
 | `.writeWithExpiry(key, value, ttl)` | Store with time-to-live |
 | `.isExpired(key)` | Check if an item has expired |
 | `.cleanExpired()` | Remove all expired items |
+| `.rotateKey(newKey)` | Re-encrypt all values with a new key |
+| `.backup()` | Export raw encrypted key-value pairs |
+| `.restore(data)` | Clear and restore from raw encrypted data |
+| `.export()` | Export store as a JSON string |
+| `.import(json)` | Clear and import from a JSON string |
+| `.keyCount` | Get the number of stored keys |
 
 ### Backends
 

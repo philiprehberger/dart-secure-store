@@ -11,7 +11,7 @@ import 'storage_backend.dart';
 /// All values are encrypted before storage and decrypted on retrieval.
 class SecureStore {
   final StorageBackend _backend;
-  final Encryption _encryption;
+  Encryption _encryption;
 
   /// Create a secure store with encryption key and optional backend.
   ///
@@ -155,5 +155,71 @@ class SecureStore {
       }
     }
     return removed;
+  }
+
+  /// Re-encrypt all stored values under a new encryption key.
+  ///
+  /// Reads and decrypts every entry with the current key, then re-encrypts
+  /// and writes each entry using [newKey].
+  Future<void> rotateKey(String newKey) async {
+    final keys = await allKeys();
+    final oldEncryption = _encryption;
+    final newEncryption = Encryption(newKey);
+
+    for (final key in keys) {
+      final encrypted = await _backend.read(key);
+      if (encrypted == null) continue;
+      final decrypted = oldEncryption.decrypt(encrypted);
+      final reEncrypted = newEncryption.encrypt(decrypted);
+      await _backend.write(key, reEncrypted);
+    }
+
+    _encryption = newEncryption;
+  }
+
+  /// Export all raw encrypted key-value pairs from the backend.
+  ///
+  /// Returns a map of keys to their encrypted (base64) values.
+  Future<Map<String, String>> backup() async {
+    final keys = await allKeys();
+    final data = <String, String>{};
+    for (final key in keys) {
+      final value = await _backend.read(key);
+      if (value != null) {
+        data[key] = value;
+      }
+    }
+    return data;
+  }
+
+  /// Clear the store and write all entries from [data] directly to the backend.
+  ///
+  /// The values in [data] should be raw encrypted strings (as returned by [backup]).
+  Future<void> restore(Map<String, String> data) async {
+    await _backend.clear();
+    for (final entry in data.entries) {
+      await _backend.write(entry.key, entry.value);
+    }
+  }
+
+  /// Export the store as a JSON string of raw encrypted key-value pairs.
+  Future<String> export() async {
+    final data = await backup();
+    return json.encode(data);
+  }
+
+  /// Clear the store and import entries from a JSON string.
+  ///
+  /// The JSON should be an object of key-value pairs as produced by [export].
+  Future<void> import(String jsonString) async {
+    final data = (json.decode(jsonString) as Map<String, dynamic>)
+        .map((key, value) => MapEntry(key, value as String));
+    await restore(data);
+  }
+
+  /// The number of keys currently stored.
+  Future<int> get keyCount async {
+    final keys = await allKeys();
+    return keys.length;
   }
 }

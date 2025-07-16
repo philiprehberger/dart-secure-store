@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:philiprehberger_secure_store/secure_store.dart';
 import 'package:test/test.dart';
 
@@ -210,6 +212,90 @@ void main() {
       expect(removed, equals(2));
       expect(await store.containsKey('keep'), isTrue);
       expect(await store.containsKey('expire1'), isFalse);
+    });
+  });
+
+  group('Key Rotation', () {
+    test('rotateKey re-encrypts all values', () async {
+      await store.write('token', 'secret-value');
+      await store.write('name', 'Alice');
+
+      await store.rotateKey('new-secret-key-456');
+
+      expect(await store.read('token'), equals('secret-value'));
+      expect(await store.read('name'), equals('Alice'));
+    });
+
+    test('rotateKey works with expirable entries', () async {
+      await store.writeWithExpiry(
+          'session', 'token123', const Duration(hours: 1));
+      await store.write('normal', 'value');
+
+      await store.rotateKey('rotated-key-789');
+
+      expect(await store.read('normal'), equals('value'));
+      // Expirable entry is re-encrypted as raw — decrypted value is the
+      // encoded JSON wrapper, which round-trips correctly.
+      final sessionValue = await store.read('session');
+      expect(sessionValue, isNotNull);
+    });
+  });
+
+  group('Backup / Restore', () {
+    test('backup and restore round-trip', () async {
+      await store.write('a', '1');
+      await store.write('b', '2');
+      await store.write('c', '3');
+
+      final data = await store.backup();
+      expect(data.length, equals(3));
+
+      await store.clear();
+      expect(await store.allKeys(), isEmpty);
+
+      await store.restore(data);
+      expect(await store.read('a'), equals('1'));
+      expect(await store.read('b'), equals('2'));
+      expect(await store.read('c'), equals('3'));
+    });
+
+    test('export and import round-trip', () async {
+      await store.write('x', 'hello');
+      await store.write('y', 'world');
+
+      final exported = await store.export();
+      // Verify it is valid JSON
+      expect(() => json.decode(exported), returnsNormally);
+
+      await store.clear();
+      expect(await store.allKeys(), isEmpty);
+
+      await store.import(exported);
+      expect(await store.read('x'), equals('hello'));
+      expect(await store.read('y'), equals('world'));
+    });
+
+    test('restore clears existing data', () async {
+      await store.write('old', 'data');
+      final data = <String, String>{};
+
+      // Backup an empty store to get empty map, then restore it
+      await store.restore(data);
+      expect(await store.containsKey('old'), isFalse);
+      expect(await store.allKeys(), isEmpty);
+    });
+  });
+
+  group('keyCount', () {
+    test('returns correct count', () async {
+      expect(await store.keyCount, equals(0));
+      await store.write('a', '1');
+      expect(await store.keyCount, equals(1));
+      await store.write('b', '2');
+      await store.write('c', '3');
+      expect(await store.keyCount, equals(3));
+      await store.delete('b');
+      expect(await store.keyCount, equals(2));
     });
   });
 
