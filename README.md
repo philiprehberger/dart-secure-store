@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_secure_store: ^0.3.0
+  philiprehberger_secure_store: ^0.4.0
 ```
 
 Then run:
@@ -130,6 +130,29 @@ await store.rotateKey('new-secret-key');
 // All existing values are now encrypted with the new key
 ```
 
+### Namespaces
+
+Isolate groups of keys with a namespace prefix:
+
+```dart
+final settings = store.namespace('settings');
+final cache = store.namespace('cache');
+
+await settings.write('theme', 'dark');
+await cache.write('data', 'value');
+
+// Each namespace is isolated
+final keys = await settings.allKeys(); // ['theme']
+await cache.clear(); // only clears cache keys
+```
+
+### Conditional Delete
+
+```dart
+// Remove all keys matching a pattern
+final removed = await store.deleteWhere((key) => key.startsWith('temp_'));
+```
+
 ### Backup & Restore
 
 ```dart
@@ -175,6 +198,8 @@ await store.import(jsonStr);
 | `.export()` | Export store as a JSON string |
 | `.import(json)` | Clear and import from a JSON string |
 | `.keyCount` | Get the number of stored keys |
+| `.deleteWhere(test)` | Delete keys matching a predicate |
+| `.namespace(prefix)` | Get a namespaced view of the store |
 
 ### Backends
 
@@ -182,6 +207,7 @@ await store.import(jsonStr);
 |---------|-------------|
 | `MemoryBackend` | In-memory (default, for testing) |
 | `FileBackend(path)` | JSON file on disk |
+| `NamespacedStore` | Scoped view with prefixed keys |
 | `StorageBackend` | Abstract interface for custom backends |
 
 ## Development
@@ -196,13 +222,19 @@ dart test
 
 If you find this project useful:
 
-- [Star the repo](https://github.com/philiprehberger/dart-secure-store)
-- [Report issues](https://github.com/philiprehberger/dart-secure-store/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-- [Suggest features](https://github.com/philiprehberger/dart-secure-store/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
-- [Sponsor development](https://github.com/sponsors/philiprehberger)
-- [All Open Source Projects](https://philiprehberger.com/open-source-packages)
-- [GitHub Profile](https://github.com/philiprehberger)
-- [LinkedIn Profile](https://www.linkedin.com/in/philiprehberger)
+⭐ [Star the repo](https://github.com/philiprehberger/dart-secure-store)
+
+🐛 [Report issues](https://github.com/philiprehberger/dart-secure-store/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+
+💡 [Suggest features](https://github.com/philiprehberger/dart-secure-store/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+
+❤️ [Sponsor development](https://github.com/sponsors/philiprehberger)
+
+🌐 [All Open Source Projects](https://philiprehberger.com/open-source-packages)
+
+💻 [GitHub Profile](https://github.com/philiprehberger)
+
+🔗 [LinkedIn Profile](https://www.linkedin.com/in/philiprehberger)
 
 ## License
 

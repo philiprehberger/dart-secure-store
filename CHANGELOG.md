@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-03
+
+### Added
+- `SecureStore.namespace()` for scoped key isolation via `NamespacedStore`
+- `SecureStore.deleteWhere()` for conditional bulk deletion
+- `NamespacedStore` class with full read/write/delete/JSON/typed operations
+
 ## [0.3.0] - 2026-04-02
 
 ### Added
