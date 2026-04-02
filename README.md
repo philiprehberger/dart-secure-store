@@ -55,7 +55,12 @@ final count = await store.readInt('login_count'); // 42
 
 ### File Backend (Persistent)
 
+For non-web platforms, import the file backend separately:
+
 ```dart
+import 'package:philiprehberger_secure_store/secure_store.dart';
+import 'package:philiprehberger_secure_store/file_backend.dart';
+
 final store = SecureStore(
   encryptionKey: 'my-key',
   backend: FileBackend('/path/to/storage.json'),

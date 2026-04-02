@@ -126,11 +126,17 @@ void main() {
     });
 
     test('wrong key fails to decrypt correctly', () {
-      final enc1 = Encryption('correct-key');
-      final enc2 = Encryption('wrong-key');
-      final cipher = enc1.encrypt('secret');
-      final result = enc2.decrypt(cipher);
-      expect(result, isNot(equals('secret')));
+      final enc1 = Encryption('correct-key-abc-123');
+      final enc2 = Encryption('wrong-key-xyz-789');
+      final original = 'this is a longer secret message that should not match';
+      final cipher = enc1.encrypt(original);
+      // Wrong key will produce garbage — either different text or invalid UTF-8
+      try {
+        final result = enc2.decrypt(cipher);
+        expect(result, isNot(equals(original)));
+      } on EncryptionError {
+        // Also acceptable — decryption may fail entirely
+      }
     });
 
     test('decrypt invalid data throws', () {

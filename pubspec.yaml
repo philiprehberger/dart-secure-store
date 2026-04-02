@@ -6,6 +6,11 @@ homepage: https://philiprehberger.com/open-source-packages/dart/philiprehberger_
 repository: https://github.com/philiprehberger/dart-secure-store
 issue_tracker: https://github.com/philiprehberger/dart-secure-store/issues
 
+topics:
+  - security
+  - encryption
+  - storage
+
 environment:
   sdk: ^3.5.0
 
