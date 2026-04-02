@@ -1,0 +1,14 @@
+name: philiprehberger_secure_store
+description: >-
+  Unified secure storage with built-in encryption and pluggable backends
+version: 0.1.0
+homepage: https://philiprehberger.com/open-source-packages/dart/philiprehberger_secure_store
+repository: https://github.com/philiprehberger/dart-secure-store
+issue_tracker: https://github.com/philiprehberger/dart-secure-store/issues
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
