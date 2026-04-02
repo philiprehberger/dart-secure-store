@@ -88,6 +88,24 @@ final store = SecureStore(
 );
 ```
 
+### Batch Operations
+
+```dart
+await store.writeMultiple({'token': 'abc', 'refresh': 'xyz', 'user': 'alice'});
+final results = await store.readMultiple(['token', 'refresh']);
+// {'token': 'abc', 'refresh': 'xyz'}
+```
+
+### Expiration / TTL
+
+```dart
+await store.writeWithExpiry('session', 'token123', Duration(hours: 1));
+await store.isExpired('session');  // false
+
+// Clean up all expired entries
+final removed = await store.cleanExpired();
+```
+
 ### Key Management
 
 ```dart
@@ -120,6 +138,11 @@ final value = await store.readOrThrow('token');
 | `.allKeys()` | List all stored keys |
 | `.clear()` | Delete all data |
 | `.readOrThrow(key)` | Read or throw `KeyNotFoundError` |
+| `.writeMultiple(pairs)` | Write multiple key-value pairs |
+| `.readMultiple(keys)` | Read multiple keys at once |
+| `.writeWithExpiry(key, value, ttl)` | Store with time-to-live |
+| `.isExpired(key)` | Check if an item has expired |
+| `.cleanExpired()` | Remove all expired items |
 
 ### Backends
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'encryption.dart';
+import 'expirable_entry.dart';
 import 'memory_backend.dart';
 import 'secure_store_error.dart';
 import 'storage_backend.dart';
@@ -97,5 +98,62 @@ class SecureStore {
     final value = await read(key);
     if (value == null) throw KeyNotFoundError(key);
     return value;
+  }
+
+  /// Write multiple key-value pairs atomically.
+  Future<void> writeMultiple(Map<String, String> pairs) async {
+    for (final entry in pairs.entries) {
+      await write(entry.key, entry.value);
+    }
+  }
+
+  /// Read multiple keys at once.
+  ///
+  /// Returns a map with null values for missing keys.
+  Future<Map<String, String?>> readMultiple(List<String> keys) async {
+    final results = <String, String?>{};
+    for (final key in keys) {
+      results[key] = await read(key);
+    }
+    return results;
+  }
+
+  /// Store a value with a time-to-live.
+  ///
+  /// The value expires after [ttl] and can be cleaned up with [cleanExpired].
+  Future<void> writeWithExpiry(String key, String value, Duration ttl) async {
+    final entry = ExpirableEntry(
+      value: value,
+      expiresAt: DateTime.now().add(ttl),
+    );
+    final encrypted = _encryption.encrypt(entry.encode());
+    await _backend.write(key, encrypted);
+  }
+
+  /// Check if a stored item has expired.
+  ///
+  /// Returns false if the key does not exist or was not stored with expiry.
+  Future<bool> isExpired(String key) async {
+    final encrypted = await _backend.read(key);
+    if (encrypted == null) return false;
+    final decrypted = _encryption.decrypt(encrypted);
+    final entry = ExpirableEntry.decode(decrypted);
+    if (entry == null) return false;
+    return entry.isExpired;
+  }
+
+  /// Remove all expired items.
+  ///
+  /// Returns the number of items removed.
+  Future<int> cleanExpired() async {
+    final keys = await allKeys();
+    var removed = 0;
+    for (final key in keys) {
+      if (await isExpired(key)) {
+        await delete(key);
+        removed++;
+      }
+    }
+    return removed;
   }
 }

@@ -158,6 +158,61 @@ void main() {
     });
   });
 
+  group('Batch Operations', () {
+    test('writeMultiple and readMultiple', () async {
+      await store.writeMultiple({'a': '1', 'b': '2', 'c': '3'});
+      final result = await store.readMultiple(['a', 'b', 'c', 'missing']);
+      expect(result['a'], equals('1'));
+      expect(result['b'], equals('2'));
+      expect(result['c'], equals('3'));
+      expect(result['missing'], isNull);
+    });
+
+    test('writeMultiple overwrites existing', () async {
+      await store.write('key', 'old');
+      await store.writeMultiple({'key': 'new'});
+      expect(await store.read('key'), equals('new'));
+    });
+
+    test('readMultiple with empty list', () async {
+      final result = await store.readMultiple([]);
+      expect(result, isEmpty);
+    });
+  });
+
+  group('TTL / Expiration', () {
+    test('writeWithExpiry stores and reads before expiry', () async {
+      await store.writeWithExpiry('ttl', 'value', const Duration(hours: 1));
+      expect(await store.isExpired('ttl'), isFalse);
+    });
+
+    test('isExpired returns true after TTL', () async {
+      await store.writeWithExpiry('expired', 'old', Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(await store.isExpired('expired'), isTrue);
+    });
+
+    test('isExpired returns false for missing key', () async {
+      expect(await store.isExpired('nonexistent'), isFalse);
+    });
+
+    test('isExpired returns false for non-expirable key', () async {
+      await store.write('normal', 'value');
+      expect(await store.isExpired('normal'), isFalse);
+    });
+
+    test('cleanExpired removes expired entries', () async {
+      await store.write('keep', 'value');
+      await store.writeWithExpiry('expire1', 'old', Duration.zero);
+      await store.writeWithExpiry('expire2', 'old', Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
+      final removed = await store.cleanExpired();
+      expect(removed, equals(2));
+      expect(await store.containsKey('keep'), isTrue);
+      expect(await store.containsKey('expire1'), isFalse);
+    });
+  });
+
   group('SecureStoreError', () {
     test('toString includes message', () {
       const error = SecureStoreError('test error');
