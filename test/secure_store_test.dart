@@ -299,6 +299,113 @@ void main() {
     });
   });
 
+  group('deleteWhere', () {
+    test('removes matching keys', () async {
+      await store.write('cache.a', '1');
+      await store.write('cache.b', '2');
+      await store.write('token', '3');
+
+      final removed = await store.deleteWhere((key) => key.startsWith('cache.'));
+      expect(removed, 2);
+      expect(await store.containsKey('cache.a'), isFalse);
+      expect(await store.containsKey('cache.b'), isFalse);
+      expect(await store.containsKey('token'), isTrue);
+    });
+
+    test('returns 0 when nothing matches', () async {
+      await store.write('a', '1');
+      final removed = await store.deleteWhere((key) => key.startsWith('x'));
+      expect(removed, 0);
+      expect(await store.keyCount, 1);
+    });
+  });
+
+  group('NamespacedStore', () {
+    test('prefixes keys on write and read', () async {
+      final ns = store.namespace('settings');
+      await ns.write('theme', 'dark');
+
+      // Should be stored with prefix in parent
+      expect(await store.containsKey('settings.theme'), isTrue);
+      expect(await ns.read('theme'), 'dark');
+    });
+
+    test('namespaces are isolated', () async {
+      final settings = store.namespace('settings');
+      final cache = store.namespace('cache');
+
+      await settings.write('key', 'settings-value');
+      await cache.write('key', 'cache-value');
+
+      expect(await settings.read('key'), 'settings-value');
+      expect(await cache.read('key'), 'cache-value');
+    });
+
+    test('allKeys returns only namespace keys without prefix', () async {
+      await store.write('global', 'g');
+      final ns = store.namespace('ns');
+      await ns.write('a', '1');
+      await ns.write('b', '2');
+
+      final keys = await ns.allKeys();
+      expect(keys, unorderedEquals(['a', 'b']));
+    });
+
+    test('containsKey checks within namespace', () async {
+      final ns = store.namespace('ns');
+      await ns.write('exists', 'yes');
+      expect(await ns.containsKey('exists'), isTrue);
+      expect(await ns.containsKey('missing'), isFalse);
+    });
+
+    test('delete removes from namespace', () async {
+      final ns = store.namespace('ns');
+      await ns.write('key', 'value');
+      await ns.delete('key');
+      expect(await ns.containsKey('key'), isFalse);
+    });
+
+    test('clear removes only namespace keys', () async {
+      await store.write('global', 'keep');
+      final ns = store.namespace('ns');
+      await ns.write('a', '1');
+      await ns.write('b', '2');
+
+      await ns.clear();
+
+      expect(await ns.keyCount, 0);
+      expect(await store.containsKey('global'), isTrue);
+    });
+
+    test('keyCount returns namespace count', () async {
+      final ns = store.namespace('ns');
+      expect(await ns.keyCount, 0);
+      await ns.write('a', '1');
+      await ns.write('b', '2');
+      expect(await ns.keyCount, 2);
+    });
+
+    test('JSON operations work in namespace', () async {
+      final ns = store.namespace('data');
+      await ns.writeJson('user', {'name': 'Alice'});
+      final result = await ns.readJson('user');
+      expect(result!['name'], 'Alice');
+    });
+
+    test('typed values work in namespace', () async {
+      final ns = store.namespace('prefs');
+      await ns.writeBool('dark', true);
+      await ns.writeInt('count', 5);
+      expect(await ns.readBool('dark'), isTrue);
+      expect(await ns.readInt('count'), 5);
+    });
+
+    test('prefix getter returns namespace prefix', () {
+      final ns = store.namespace('settings');
+      expect(ns.prefix, 'settings');
+    });
+  });
+
   group('SecureStoreError', () {
     test('toString includes message', () {
       const error = SecureStoreError('test error');

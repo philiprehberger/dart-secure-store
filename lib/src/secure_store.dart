@@ -222,4 +222,100 @@ class SecureStore {
     final keys = await allKeys();
     return keys.length;
   }
+
+  /// Delete all entries matching a predicate on the key.
+  ///
+  /// Returns the number of entries removed.
+  Future<int> deleteWhere(bool Function(String key) test) async {
+    final keys = await allKeys();
+    var count = 0;
+    for (final key in keys) {
+      if (test(key)) {
+        await delete(key);
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /// Returns a namespaced view of this store.
+  ///
+  /// All operations on the returned store automatically prefix keys with
+  /// `[prefix].`. This allows logical separation of key groups (settings,
+  /// tokens, cache) within a single store.
+  NamespacedStore namespace(String prefix) => NamespacedStore._(this, prefix);
+}
+
+/// A namespaced view of a [SecureStore] that prefixes all keys.
+///
+/// Returned by [SecureStore.namespace]. All read/write/delete operations
+/// are scoped to keys starting with the namespace prefix.
+class NamespacedStore {
+  final SecureStore _parent;
+  final String _prefix;
+
+  NamespacedStore._(this._parent, this._prefix);
+
+  String _key(String key) => '$_prefix.$key';
+
+  /// The namespace prefix.
+  String get prefix => _prefix;
+
+  /// Store a string value in this namespace.
+  Future<void> write(String key, String value) => _parent.write(_key(key), value);
+
+  /// Read a string value from this namespace.
+  Future<String?> read(String key) => _parent.read(_key(key));
+
+  /// Store a JSON object in this namespace.
+  Future<void> writeJson(String key, Map<String, dynamic> value) =>
+      _parent.writeJson(_key(key), value);
+
+  /// Read a JSON object from this namespace.
+  Future<Map<String, dynamic>?> readJson(String key) =>
+      _parent.readJson(_key(key));
+
+  /// Store a boolean in this namespace.
+  Future<void> writeBool(String key, bool value) =>
+      _parent.writeBool(_key(key), value);
+
+  /// Read a boolean from this namespace.
+  Future<bool?> readBool(String key) => _parent.readBool(_key(key));
+
+  /// Store an integer in this namespace.
+  Future<void> writeInt(String key, int value) =>
+      _parent.writeInt(_key(key), value);
+
+  /// Read an integer from this namespace.
+  Future<int?> readInt(String key) => _parent.readInt(_key(key));
+
+  /// Delete a key from this namespace.
+  Future<bool> delete(String key) => _parent.delete(_key(key));
+
+  /// Check if a key exists in this namespace.
+  Future<bool> containsKey(String key) => _parent.containsKey(_key(key));
+
+  /// Get all keys in this namespace (without the prefix).
+  Future<List<String>> allKeys() async {
+    final all = await _parent.allKeys();
+    final prefixDot = '$_prefix.';
+    return all
+        .where((k) => k.startsWith(prefixDot))
+        .map((k) => k.substring(prefixDot.length))
+        .toList();
+  }
+
+  /// Delete all keys in this namespace.
+  Future<void> clear() async {
+    final keys = await allKeys();
+    for (final key in keys) {
+      await delete(key);
+    }
+  }
+
+  /// The number of keys in this namespace.
+  Future<int> get keyCount async {
+    final keys = await allKeys();
+    return keys.length;
+  }
 }
