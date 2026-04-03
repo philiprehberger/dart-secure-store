@@ -51,6 +51,26 @@ Future<void> main() async {
   final session = await persistentStore.read('session');
   print('Session: $session');
 
+  // Key rotation — re-encrypt all values under a new key
+  await store.write('secret', 'my-data');
+  await store.rotateKey('new-encryption-key-512');
+  final rotated = await store.read('secret');
+  print('After rotation: $rotated'); // my-data
+
+  // Backup and restore
+  await store.write('a', '1');
+  await store.write('b', '2');
+  final backup = await store.backup();
+  await store.clear();
+  await store.restore(backup);
+  print('Restored keys: ${await store.allKeys()}');
+
+  // JSON export/import
+  final exported = await store.export();
+  await store.clear();
+  await store.import(exported);
+  print('Key count: ${await store.keyCount}');
+
   // Strict access — throws if key is missing
   try {
     await store.readOrThrow('nonexistent');
